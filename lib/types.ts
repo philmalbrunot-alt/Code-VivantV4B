@@ -58,7 +58,7 @@ export type PremiumReading = {
 export type ReadingRecord = {
   token: string;
   paid: boolean;
-  status: 'pending' | 'ready' | 'failed';
+  status: 'pending' | 'processing' | 'ready' | 'failed';
   answers: QuizAnswers;
   free: FreeReading;
   premium?: PremiumReading;
