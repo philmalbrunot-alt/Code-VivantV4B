@@ -18,24 +18,44 @@ export function PrepareScreen({ token }: { token: string }) {
   const [message, setMessage] = useState('Cela peut prendre quelques instants.');
 
   useEffect(() => {
+    let cancelled = false;
+
     const interval = window.setInterval(async () => {
       try {
-        const res = await fetch(`/api/reading/status?token=${encodeURIComponent(token)}`);
+        const res = await fetch(`/api/reading/status?token=${encodeURIComponent(token)}`, {
+          cache: 'no-store',
+        });
+
         const data = await res.json();
+
+        if (cancelled) return;
+
         if (data.status === 'ready') {
+          window.clearInterval(interval);
           router.replace(`/lecture/${token}`);
           return;
         }
-        if (data.status === 'failed') {
+
+        if (data.status === 'processing') {
+          setMessage('Votre lecture complète est en cours de finalisation.');
+        } else if (data.status === 'failed') {
           setMessage(data.error || 'La lecture demande un peu plus de temps que prévu. Réessayez dans quelques instants.');
+        } else {
+          setMessage('Nous préparons votre lecture complète.');
         }
       } catch {
-        setMessage('La lecture demande un peu plus de temps que prévu. Réessayez dans quelques instants.');
+        if (!cancelled) {
+          setMessage('La lecture demande un peu plus de temps que prévu. Réessayez dans quelques instants.');
+        }
       }
+
       setActive((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
     }, 2000);
 
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, [router, token]);
 
   return (
@@ -56,7 +76,14 @@ export function PrepareScreen({ token }: { token: string }) {
             {steps.map((step, index) => {
               const done = index <= active;
               return (
-                <div key={step} className={`rounded-2xl border px-5 py-5 text-lg md:text-2xl ${done ? 'border-cv-gold/25 bg-cv-gold/10 text-cv-text' : 'border-cv-line bg-cv-panelAlt text-cv-muted'}`}>
+                <div
+                  key={step}
+                  className={`rounded-2xl border px-5 py-5 text-lg md:text-2xl ${
+                    done
+                      ? 'border-cv-gold/25 bg-cv-gold/10 text-cv-text'
+                      : 'border-cv-line bg-cv-panelAlt text-cv-muted'
+                  }`}
+                >
                   {index + 1}. {step}
                 </div>
               );
