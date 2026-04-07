@@ -6,11 +6,13 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   const token = new URL(req.url).searchParams.get('token');
+
   if (!token) {
     return NextResponse.json({ error: 'Token manquant.' }, { status: 400 });
   }
 
   const record = await getReading(token);
+
   if (!record) {
     return NextResponse.json({ error: 'Lecture introuvable.' }, { status: 404 });
   }
@@ -30,15 +32,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ status: 'processing' });
   }
 
-  if (record.status === 'pending') {
+  if (record.paid && record.status === 'pending') {
     await updateReading(token, { status: 'processing' });
 
     try {
       const premium = await generatePremiumReading(record.answers);
+
       await updateReading(token, {
         status: 'ready',
         premium,
-        paid: true,
       });
 
       return NextResponse.json({ status: 'ready' });
